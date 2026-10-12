@@ -1,4 +1,4 @@
-# PS5 Wind Waker HD, with optional Lossless Scaling frame generation
+# PS5 Wind Waker HD + Optional Lossless Scaling Frame Gen.
 
 This fork is built on top of the **1.0.0 release of the builder kit** (`wwhd-ps5-kit-1.0.0`) from [griches/PS5_WindWakerHD](https://github.com/griches/PS5_WindWakerHD). It does not change the fundamentals of how the kit works, rather it builds on top of it by implementing Lossless frame generation. You still build your own title from your own dump of the game with `make-title.sh`. The only difference is that `rebuild-renderer.sh` and the updated patch are applied on top of the 1.0.0 kit before the final link step.
 This fork adds one opt-in feature to the PS5 port: **frame generation**. The game renders at its normal 30 fps, and the PS5's GPU generates the in-between frame, so the screen shows 60 fps. Everything else is unchanged, and with the feature switched off the build behaves like upstream. 
@@ -12,7 +12,7 @@ This fork adds one opt-in feature to the PS5 port: **frame generation**. The gam
 5. Run `./make-title.sh <your dump folder> <output folder>`. It relinks and writes `PPSA99306/eboot.bin`.
 6. Copy the new `eboot.bin` to `/data/homebrew/PPSA99306/` on the console. Put `Lossless.dll` and an `env.txt` with `WWHD_PS5_LSFG=1` there too.
 
-An example env.txt is also supplied.
+An example env.txt and settings.ini also supplied.
 
 ## What's new
 
