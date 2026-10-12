@@ -1,3 +1,55 @@
+# PS5 Wind Waker HD, with optional Lossless Scaling frame generation
+
+This fork is built on top of the **1.0.0 release of the builder kit** (`wwhd-ps5-kit-1.0.0`) from [griches/PS5_WindWakerHD](https://github.com/griches/PS5_WindWakerHD). It does not change the fundamentals of how the kit works, rather it builds on top of it by implementing Lossless frame generation. You still build your own title from your own dump of the game with `make-title.sh`. The only difference is that `rebuild-renderer.sh` and the updated patch are applied on top of the 1.0.0 kit before the final link step.
+This fork adds one opt-in feature to the PS5 port: **frame generation**. The game renders at its normal 30 fps, and the PS5's GPU generates the in-between frame, so the screen shows 60 fps. Everything else is unchanged, and with the feature switched off the build behaves like upstream. 
+
+## How to build
+
+1. Set up the 1.0.0 builder kit as described in its own README, and dump your own copy of the game.
+2. Put `wwhd-lsfg.patch` (the patch in this repo) and `rebuild-renderer.sh` in the root of the kit folder.
+3. In the kit's Docker container, run `bash ./rebuild-renderer.sh /kit /kit/wwhd-lsfg.patch --install`, then leave the container.
+4. Remove the old kit image with `docker rmi wwhd-ps5-kit:1.0.0`.
+5. Run `./make-title.sh <your dump folder> <output folder>`. It relinks and writes `PPSA99306/eboot.bin`.
+6. Copy the new `eboot.bin` to `/data/homebrew/PPSA99306/` on the console. Put `Lossless.dll` and an `env.txt` with `WWHD_PS5_LSFG=1` there too.
+
+An example env.txt is also supplied.
+
+## What's new
+
+- **Frame generation (30 → 60 fps).** On each game frame, the renderer runs the Lossless Scaling frame-generation passes (the algorithm used by lsfg-vk) on the PS5 GPU. It then presents the generated frame first and the real frame second.
+- **Scene-cut guard (optional).** If two consecutive real frames differ enormously (a menu flip or a hard cut), the generated frame is replaced by the previous real frame, so no blended mess appears.
+- **Frame-difference measurement (optional).** A log of how different consecutive frames are, used to choose the cut threshold.
+- **`rebuild-renderer.sh`.** Rebuilds just the changed renderer files inside the builder kit, instead of the whole game.
+
+## What you need
+
+- A PS5 running the homebrew build of this project.
+- **Your own copy of `Lossless.dll`** from Lossless Scaling. It is not included in this repository and must not be redistributed. The shaders are read from it at start-up. Put it next to `env.txt` (or point `WWHD_PS5_LSFG_DLL` at it).
+- The game's own frame interpolation must be off. The feature only works when the game is in its normal 30 fps mode, and the log shows `[lsfg] waiting` if it isn't.
+
+## Settings (`env.txt`)
+
+| Setting | Meaning |
+|---|---|
+| `WWHD_PS5_LSFG=1` | Turns frame generation on. Off by default. |
+| `WWHD_PS5_LSFG_DLL=/app0/Lossless.dll` | Path to your `Lossless.dll`. By default the console's `/app0`, `/data/homebrew/PPSA99306` and its `userdata` folder are searched. |
+| `WWHD_PS5_LSFG_FLOW=80` | Motion strength, 25–100 (default 100). Lower can reduce ghosting on fast movement, at some cost to smoothness. |
+| `WWHD_PS5_LSFG_CUT=0.3` | Turns the scene-cut guard on. Measured values: normal play, including fast camera, stays below about 0.23, and the large jumps that were seen were around 0.47. Leave it off if unsure. |
+| `WWHD_PS5_LSFG_STATS=1` | Logs a frame-difference summary every 300 frames. |
+| `WWHD_PS5_LSFG_LOGDIFF=0.12` | With stats on, also logs individual frames above this difference. |
+
+## Known limits
+
+- **Latency:** about one extra frame at 60 Hz (roughly 16 ms) compared with no frame generation.
+- **Ghosting:** slight ghosting remains around Link's head and hat on fast camera movement, and a little when jumping or z-targeting. A lower camera-speed multiplier and a lower `WWHD_PS5_LSFG_FLOW` both reduce it.
+- **Overlay fps:** the on-screen counter shows the game's own swaps (about 30), not the 60 frames actually shown.
+- **Tested on:** one PS5 at 2560×1440 (internal resolution 2x), a few play sessions. Long sessions, sailing and cutscenes have had little testing. The scene-cut guard has not been seen firing in real play.
+
+## Credits and licences
+
+The frame-generation passes are ported from the Eden / lsfg-vk code (GPL-3.0-or-later). The algorithm and shaders belong to Lossless Scaling, which is why you supply your own `Lossless.dll`. See `LICENSING.md` for how the rest of the project is licensed.
+---
+
 # Wind Waker HD for PlayStation 5
 
 A PS5 homebrew port of [ZeldaWWHDRecomp](https://github.com/ZeldaWWHDRecomp/ZeldaWWHDRecomp),
